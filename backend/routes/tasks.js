@@ -1,19 +1,13 @@
 const express = require("express");
 const Task = require("../models/Task");
-const {
-  createTaskSchema,
-  updateTaskSchema,
-} = require("../validators/task.schema");
+const { createTaskSchema, updateTaskSchema } = require("../validators/task.schema");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-/* ================= GET TASKS (PER USER) ================= */
+/* ================= GET TASKS (DOAR ALE USERULUI) ================= */
 router.get("/", auth, async (req, res) => {
-  const tasks = await Task.find({
-    userId: req.user.uid,
-  }).sort({ createdAt: -1 });
-
+  const tasks = await Task.find({ userId: req.user.uid }).sort({ createdAt: -1 });
   res.json(tasks);
 });
 
@@ -26,10 +20,8 @@ router.post("/", auth, async (req, res) => {
 
   const task = await Task.create({
     ...parsed.data,
-    userId: req.user.uid, // 🔑 LEGARE DE USER
-    deadline: parsed.data.deadline
-      ? new Date(parsed.data.deadline)
-      : null,
+    userId: req.user.uid,
+    deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
   });
 
   res.status(201).json(task);
@@ -42,26 +34,16 @@ router.patch("/:id", auth, async (req, res) => {
     return res.status(400).json(parsed.error);
   }
 
-  const task = await Task.findOne({
-    _id: req.params.id,
-    userId: req.user.uid, // 🔑 SIGURANȚĂ
-  });
+  const task = await Task.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user.uid },
+    parsed.data,
+    { new: true }
+  );
 
   if (!task) {
     return res.status(404).json({ message: "Task not found" });
   }
 
-  Object.keys(parsed.data).forEach((key) => {
-    if (key === "deadline") {
-      task.deadline = parsed.data.deadline
-        ? new Date(parsed.data.deadline)
-        : null;
-    } else {
-      task[key] = parsed.data[key];
-    }
-  });
-
-  await task.save();
   res.json(task);
 });
 
@@ -69,7 +51,7 @@ router.patch("/:id", auth, async (req, res) => {
 router.delete("/:id", auth, async (req, res) => {
   const task = await Task.findOneAndDelete({
     _id: req.params.id,
-    userId: req.user.uid, // 🔑
+    userId: req.user.uid,
   });
 
   if (!task) {
