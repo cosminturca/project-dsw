@@ -3,3 +3,9 @@
 
 
 body { background: #f3f6fb; }
+
+/* Disable Edge / IE password reveal icon */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
