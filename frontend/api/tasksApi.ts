@@ -1,7 +1,13 @@
 import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks";
 import { auth } from "../src/firebase";
 
-const API_URL = "http://localhost:4000/api/tasks";
+/**
+ * Backend base URL
+ * - local: http://localhost:4000
+ * - production: https://project-dsw.onrender.com
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = `${API_BASE_URL}/api/tasks`;
 
 /* ================== AUTH HEADER ================== */
 async function authHeaders(): Promise<Record<string, string>> {
@@ -25,7 +31,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 /* ================== API CALLS ================== */
 
-// 🔹 GET tasks (userId vine din token, NU din query)
+// 🔹 GET tasks
 export async function fetchTasks(): Promise<Task[]> {
   const headers = await authHeaders();
 
@@ -36,7 +42,7 @@ export async function fetchTasks(): Promise<Task[]> {
   return handleResponse<Task[]>(res);
 }
 
-// 🔹 CREATE task (userId va fi setat în backend din token)
+// 🔹 CREATE task
 export async function createTask(input: NewTaskInput): Promise<Task> {
   const headers = await authHeaders();
 
