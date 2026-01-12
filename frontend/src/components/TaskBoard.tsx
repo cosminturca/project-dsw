@@ -1,19 +1,17 @@
 import { useMemo, useRef, useState } from "react";
 import { useTasks } from "../context/TasksContext";
 import type { Task, TaskCategory, TaskRepeat, TaskPriority, NewTaskInput } from "../types/tasks";
-    
+ import { Header } from "./Header";
+  
 import {
   ArrowUpDown,
   CalendarClock,
-  Cloud,
   Download,
   FileSpreadsheet,
   FileText,
   GripVertical,
-  Moon,
   Plus,
   Search,
-  Sun,
   Trash2,
   Upload,
   X,
@@ -101,17 +99,9 @@ function priorityScore(p: TaskPriority) {
   return 1;
 }
 
-function ensureTheme() {
-  const raw = localStorage.getItem("task-project.theme");
-  const theme = raw === "dark" ? "dark" : "light";
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  return theme as "light" | "dark";
-}
-
 export default function TaskBoard() {
   const { tasks, selectedId, setSelectedId, addTask, patchTask, toggleDone, deleteTask, setTasksDirect } = useTasks();
 
-  const [theme, setTheme] = useState<"light" | "dark">(() => ensureTheme());
   const [syncOk] = useState(true); // când legăm backend, îl facem real
 
   // composer state
@@ -145,13 +135,6 @@ export default function TaskBoard() {
     const overdue = tasks.filter((t) => isOverdue(t)).length;
     return { total, done, pending: total - done, overdue };
   }, [tasks]);
-
-  function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("task-project.theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-  }
 
 async function submitNew() {
   const t = title.trim();
@@ -383,25 +366,11 @@ async function submitNew() {
     return map as Record<"Overdue" | "Today" | "Upcoming" | "Someday", Task[]>;
   }, [filteredSorted, groupByDue]);
 
-  return (
-    <div className="min-h-screen bg-[#f3f6fb] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <div className="mx-auto max-w-6xl px-4 pb-16">
-        {/* status + theme */}
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold tracking-wide text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
-            <Cloud className="h-4 w-4" />
-            <span className={`h-2 w-2 rounded-full ${syncOk ? "bg-green-500" : "bg-slate-500"}`} />
-            {syncOk ? "SYNC READY" : "OFFLINE"}
-          </span>
+ return (
+  <div className="min-h-screen bg-[#f3f6fb] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="mx-auto max-w-6xl px-4 pb-16">
+      <Header syncOk={syncOk} />
 
-          <button
-            onClick={toggleTheme}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            {theme === "dark" ? "Light" : "Dark"}
-          </button>
-        </div>
 
         {/* header */}
         <div className="mt-6 flex flex-wrap items-end justify-between gap-4">

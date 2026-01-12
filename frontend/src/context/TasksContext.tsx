@@ -1,21 +1,33 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Task, NewTaskInput, TaskPatch } from "../types/tasks";
+import { useAuth } from "../context/useAuth";
 
-import { fetchTasks, createTask, updateTask, deleteTaskApi } from "../../api/tasksApi";
+import {
+  fetchTasks,
+  createTask,
+  updateTask,
+  deleteTaskApi,
+} from "../../api/tasksApi";
+
+/* ================== TYPES ================== */
 
 type TasksContextValue = {
   tasks: Task[];
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
 
-  addTask: (input: NewTaskInput) => Promise<Task>;         // <- returnează created ca să poți await-ui din UI
+  addTask: (input: NewTaskInput) => Promise<Task>;
   patchTask: (id: string, patch: TaskPatch) => Promise<void>;
   toggleDone: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 
   setTasksDirect: (next: Task[]) => void;
 };
+
+type TaskFromApi = Partial<Task> & { _id?: string };
+
+/* ================== CONTEXT ================== */
 
 const TasksContext = createContext<TasksContextValue | null>(null);
 
@@ -24,56 +36,68 @@ export function useTasks() {
   if (!ctx) throw new Error("useTasks must be used inside <TasksProvider />");
   return ctx;
 }
-type TaskFromApi = Partial<Task> & { _id?: string };
+
+/* ================== HELPERS ================== */
 
 function normalizeTask(raw: TaskFromApi): Task {
   const id = raw.id ?? raw._id ?? "";
   return { ...(raw as Task), id };
 }
 
+/* ================== PROVIDER ================== */
+
 export function TasksProvider({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // LOAD inițial
+  /* ========= LOAD TASKS PER USER ========= */
   useEffect(() => {
     let cancelled = false;
 
-    fetchTasks()
-      .then((data) => {
+    async function load() {
+      if (loading) return;
+
+      // 🔹 user delogat → reset state
+      if (!user) {
+        setTasks([]);
+        setSelectedId(null);
+        return;
+      }
+
+      try {
+        const data = await fetchTasks();
         if (cancelled) return;
 
         const normalized = (data ?? []).map(normalizeTask);
-
-        // IMPORTANT: dacă între timp s-a creat un task, nu suprascriem lista
-        setTasks((prev) => (prev.length > 0 ? prev : normalized));
-        setSelectedId((prev) => prev ?? normalized[0]?.id ?? null);
-      })
-      .catch((err) => {
+        setTasks(normalized);
+        setSelectedId(normalized[0]?.id ?? null);
+      } catch (err) {
         console.error("fetchTasks failed:", err);
-      });
+      }
+    }
+
+    load();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user, loading]);
+
+  /* ================== ACTIONS ================== */
 
   async function addTask(input: NewTaskInput) {
     const title = input.title.trim();
     if (!title) throw new Error("Title is required");
 
-    try {
-      const createdRaw = await createTask({ ...input, title });
-      const created = normalizeTask(createdRaw);
+    const createdRaw = await createTask({ ...input, title });
+    const created = normalizeTask(createdRaw);
 
-      setTasks((prev) => [created, ...prev]);
-      setSelectedId(created.id);
+    setTasks((prev) => [created, ...prev]);
+    setSelectedId(created.id);
 
-      return created;
-    } catch (err) {
-      console.error("createTask failed:", err);
-      throw err; // lăsăm UI-ul să decidă ce face (nu resetăm form-ul)
-    }
+    return created;
   }
 
   async function patchTask(id: string, patch: TaskPatch) {
@@ -84,9 +108,9 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function toggleDone(id: string) {
-    // evităm stale state: găsim task-ul din prev
-    const current = tasks.find((x) => x.id === id);
+    const current = tasks.find((t) => t.id === id);
     if (!current) return;
+
     await patchTask(id, { completed: !current.completed });
   }
 
@@ -97,7 +121,6 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
   }
 
   function setTasksDirect(next: Task[]) {
-    // asigurăm id și aici
     const normalized = next.map(normalizeTask);
     setTasks(normalized);
     setSelectedId(normalized[0]?.id ?? null);

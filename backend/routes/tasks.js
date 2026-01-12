@@ -4,6 +4,14 @@ const { createTaskSchema, updateTaskSchema } = require("../validators/task.schem
 
 const router = express.Router();
 
+const auth = require("../middleware/auth");
+
+router.get("/", auth, async (req, res) => {
+  const tasks = await Task.find({ userId: req.user.uid });
+  res.json(tasks);
+});
+
+
 /** GET all tasks */
 router.get("/", async (req, res) => {
   const tasks = await Task.find().sort({ createdAt: -1 });

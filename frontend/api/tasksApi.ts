@@ -1,8 +1,20 @@
 import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks";
-
+import { auth } from "../src/firebase";
 
 const API_URL = "http://localhost:4000/api/tasks";
 
+/* ================== AUTH HEADER ================== */
+async function authHeaders(): Promise<Record<string, string>> {
+  const user = auth.currentUser;
+  if (!user) return {};
+
+  const token = await user.getIdToken();
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+/* ================== RESPONSE HANDLER ================== */
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text();
@@ -11,30 +23,65 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+/* ================== API CALLS ================== */
+
+// 🔹 GET tasks (userId vine din token, NU din query)
 export async function fetchTasks(): Promise<Task[]> {
-  const res = await fetch(API_URL);
+  const headers = await authHeaders();
+
+  const res = await fetch(API_URL, {
+    headers,
+  });
+
   return handleResponse<Task[]>(res);
 }
 
+// 🔹 CREATE task (userId va fi setat în backend din token)
 export async function createTask(input: NewTaskInput): Promise<Task> {
+  const headers = await authHeaders();
+
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
     body: JSON.stringify(input),
   });
+
   return handleResponse<Task>(res);
 }
 
-export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
+// 🔹 UPDATE task
+export async function updateTask(
+  id: string,
+  patch: TaskPatch
+): Promise<Task> {
+  const headers = await authHeaders();
+
   const res = await fetch(`${API_URL}/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
     body: JSON.stringify(patch),
   });
+
   return handleResponse<Task>(res);
 }
 
+// 🔹 DELETE task
 export async function deleteTaskApi(id: string): Promise<void> {
-  const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Delete failed");
+  const headers = await authHeaders();
+
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Delete failed");
+  }
 }
