@@ -1,5 +1,5 @@
-import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks";
-import { auth } from "../src/firebase";
+import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks.js";
+import { auth } from "../src/firebase.ts";
 
 
 /**
