@@ -1,14 +1,24 @@
 const express = require("express");
 const Task = require("../models/Task");
-const { createTaskSchema, updateTaskSchema } = require("../validators/task.schema");
+const {
+  createTaskSchema,
+  updateTaskSchema,
+} = require("../validators/task.schema");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
 
 /* ================= GET TASKS (DOAR ALE USERULUI) ================= */
 router.get("/", auth, async (req, res) => {
-  const tasks = await Task.find({ userId: req.user.uid }).sort({ createdAt: -1 });
-  res.json(tasks);
+  try {
+    const tasks = await Task.find({
+      userId: req.user.uid,
+    }).sort({ createdAt: -1 });
+
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch tasks" });
+  }
 });
 
 /* ================= CREATE TASK ================= */
@@ -18,13 +28,19 @@ router.post("/", auth, async (req, res) => {
     return res.status(400).json(parsed.error);
   }
 
-  const task = await Task.create({
-    ...parsed.data,
-    userId: req.user.uid,
-    deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
-  });
+  try {
+    const task = await Task.create({
+      ...parsed.data,
+      userId: req.user.uid,
+      deadline: parsed.data.deadline
+        ? new Date(parsed.data.deadline)
+        : null,
+    });
 
-  res.status(201).json(task);
+    res.status(201).json(task);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create task" });
+  }
 });
 
 /* ================= UPDATE TASK ================= */
@@ -34,31 +50,39 @@ router.patch("/:id", auth, async (req, res) => {
     return res.status(400).json(parsed.error);
   }
 
-  const task = await Task.findOneAndUpdate(
-    { _id: req.params.id, userId: req.user.uid },
-    parsed.data,
-    { new: true }
-  );
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.uid },
+      parsed.data,
+      { new: true }
+    );
 
-  if (!task) {
-    return res.status(404).json({ message: "Task not found" });
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update task" });
   }
-
-  res.json(task);
 });
 
 /* ================= DELETE TASK ================= */
 router.delete("/:id", auth, async (req, res) => {
-  const task = await Task.findOneAndDelete({
-    _id: req.params.id,
-    userId: req.user.uid,
-  });
+  try {
+    const task = await Task.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.uid,
+    });
 
-  if (!task) {
-    return res.status(404).json({ message: "Task not found" });
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete task" });
   }
-
-  res.status(204).end();
 });
 
 module.exports = router;
