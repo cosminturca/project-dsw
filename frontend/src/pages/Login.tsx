@@ -34,7 +34,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
-      <div className="w-80 bg-zinc-900 text-white p-6 rounded-xl shadow-lg space-y-4">
+      <div className="w-80 bg-slate-900/70 border dark:border-slate-800 text-white p-6 rounded-3xl shadow-lg space-y-4">
         <h1 className="text-2xl font-bold text-center">Login</h1>
 
         {error && (
@@ -43,7 +43,7 @@ export default function Login() {
 
         {/* Email */}
         <input
-          className="w-full border p-2 rounded"
+          className="w-full bg-slate-900/70 border dark:border-slate-800 dark:bg-slate-950 p-2 rounded"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -52,7 +52,7 @@ export default function Login() {
         {/* Password */}
         <div className="relative">
           <input
-            className="w-full border p-2 rounded pr-10"
+            className="w-full bg-slate-900/70 border dark:border-slate-800 dark:bg-slate-950 p-2 rounded pr-10"
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
