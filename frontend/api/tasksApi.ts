@@ -1,6 +1,7 @@
 import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks";
 import { auth } from "../src/firebase";
 
+
 /**
  * Backend base URL
  * - local: http://localhost:4000
