@@ -1,24 +1,18 @@
 const admin = require("../firebaseAdmin");
 
 module.exports = async function auth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Missing token" });
+  }
+
+  const token = header.split(" ")[1];
+
   try {
-    const header = req.headers.authorization;
-
-    if (!header || !header.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Missing or invalid Authorization header" });
-    }
-
-    const token = header.split(" ")[1];
     const decoded = await admin.auth().verifyIdToken(token);
-
-    // 🔑 păstrăm doar ce ne trebuie
-    req.user = {
-      uid: decoded.uid,
-      email: decoded.email || null,
-    };
-
+    req.user = decoded;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
   }
 };

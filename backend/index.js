@@ -3,13 +3,13 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { z } = require("zod");
-const Task = require("./models/Task");
+
 const app = express();
 
 // ===== Middleware =====
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-app.use("/api/tasks", require("./routes/tasks"));
+
 // ===== Mongo =====
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
@@ -44,7 +44,7 @@ const TaskSchema = new mongoose.Schema(
       enum: ["low", "medium", "high"],
       default: "medium",
     },
-    deadline: { type: Date, default: null }, // Date, nu string
+    deadline: { type: Date, default: null },
     notes: { type: String, default: "" },
     tags: { type: [String], default: [] },
     completed: { type: Boolean, default: false },
@@ -53,7 +53,7 @@ const TaskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
+const Task = mongoose.model("Task", TaskSchema);
 
 // ===== Validation (Zod) =====
 const taskCreateSchema = z.object({
