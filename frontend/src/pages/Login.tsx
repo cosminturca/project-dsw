@@ -6,13 +6,11 @@ import { auth } from "../firebase";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
 
   async function login() {
     setError(null);

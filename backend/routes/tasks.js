@@ -27,9 +27,7 @@ router.post("/", auth, async (req, res) => {
   const task = await Task.create({
     ...parsed.data,
     userId: req.user.uid,
-    deadline: parsed.data.deadline
-      ? new Date(parsed.data.deadline)
-      : null,
+    deadline: parsed.data.deadline ? new Date(parsed.data.deadline) : null,
   });
 
   res.status(201).json(task);

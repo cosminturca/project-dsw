@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
-// exemplu simplu de validare, exact ce cere proiectul
+// validarea
 const taskSchema = z.object({
   title: z.string().min(1).max(100),
 });

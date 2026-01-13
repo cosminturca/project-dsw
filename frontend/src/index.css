@@ -2,7 +2,9 @@
 @import "react-datepicker/dist/react-datepicker.css";
 
 
-body { background: #f3f6fb; }
+body {
+  background: #f3f6fb;
+}
 
 /* Disable Edge / IE password reveal icon */
 input[type="password"]::-ms-reveal,

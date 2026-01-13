@@ -13,15 +13,15 @@ app.use(express.json());
 // ===== Mongo =====
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
-  console.error("❌ Missing MONGODB_URI in .env");
+  console.error("Missing MONGODB_URI in .env");
   process.exit(1);
 }
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
+    console.error("MongoDB connection error:", err.message);
     process.exit(1);
   });
 
@@ -44,7 +44,7 @@ const TaskSchema = new mongoose.Schema(
       enum: ["low", "medium", "high"],
       default: "medium",
     },
-    deadline: { type: Date, default: null }, // ✅ Date, nu string
+    deadline: { type: Date, default: null }, // Date, nu string
     notes: { type: String, default: "" },
     tags: { type: [String], default: [] },
     completed: { type: Boolean, default: false },
@@ -152,5 +152,5 @@ app.delete("/api/tasks/:id", async (req, res) => {
 // ===== Start =====
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`✅ API running on http://localhost:${PORT}`);
+  console.log(`API running on http://localhost:${PORT}`);
 });

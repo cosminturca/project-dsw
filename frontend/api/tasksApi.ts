@@ -1,7 +1,6 @@
 import type { Task, NewTaskInput, TaskPatch } from "../src/types/tasks.js";
 import { auth } from "../src/firebase.js";
 
-
 /**
  * Backend base URL
  * - local: http://localhost:4000
@@ -32,7 +31,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 /* ================== API CALLS ================== */
 
-// 🔹 GET tasks
+// GET tasks
 export async function fetchTasks(): Promise<Task[]> {
   const headers = await authHeaders();
 
@@ -43,7 +42,7 @@ export async function fetchTasks(): Promise<Task[]> {
   return handleResponse<Task[]>(res);
 }
 
-// 🔹 CREATE task
+// CREATE task
 export async function createTask(input: NewTaskInput): Promise<Task> {
   const headers = await authHeaders();
 
@@ -59,11 +58,8 @@ export async function createTask(input: NewTaskInput): Promise<Task> {
   return handleResponse<Task>(res);
 }
 
-// 🔹 UPDATE task
-export async function updateTask(
-  id: string,
-  patch: TaskPatch
-): Promise<Task> {
+// UPDATE task
+export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
   const headers = await authHeaders();
 
   const res = await fetch(`${API_URL}/${id}`, {
@@ -78,7 +74,7 @@ export async function updateTask(
   return handleResponse<Task>(res);
 }
 
-// 🔹 DELETE task
+// DELETE task
 export async function deleteTaskApi(id: string): Promise<void> {
   const headers = await authHeaders();
 

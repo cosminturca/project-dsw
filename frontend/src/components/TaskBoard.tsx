@@ -1,10 +1,19 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useTasks } from "../context/TasksContext";
-import type { Task, TaskCategory, TaskRepeat, TaskPriority, NewTaskInput } from "../types/tasks";
- import { Header } from "./Header";
- import { saveOfflineTask, getOfflineTasks, clearOfflineTasks } from "../lib/indexedDb";
+import type {
+  Task,
+  TaskCategory,
+  TaskRepeat,
+  TaskPriority,
+  NewTaskInput,
+} from "../types/tasks";
+import { Header } from "./Header";
+import {
+  saveOfflineTask,
+  getOfflineTasks,
+  clearOfflineTasks,
+} from "../lib/indexedDb";
 
-  
 import {
   ArrowUpDown,
   CalendarClock,
@@ -22,9 +31,19 @@ import {
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd";
 
-const CATEGORIES: TaskCategory[] = ["Facultate", "Personal", "Shopping", "Work"];
+const CATEGORIES: TaskCategory[] = [
+  "Facultate",
+  "Personal",
+  "Shopping",
+  "Work",
+];
 const REPEATS: { value: TaskRepeat; label: string }[] = [
   { value: "none", label: "Fără" },
   { value: "daily", label: "Zilnic" },
@@ -61,7 +80,13 @@ function openNativeDatePicker(el: HTMLInputElement | null) {
 function fmtDateShort(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+  return d
+    .toLocaleDateString("ro-RO", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+    .toUpperCase();
 }
 
 function isOverdue(t: Task) {
@@ -102,8 +127,16 @@ function priorityScore(p: TaskPriority) {
 }
 
 export default function TaskBoard() {
-  const { tasks, selectedId, setSelectedId, addTask, patchTask, toggleDone, deleteTask, setTasksDirect } = useTasks();
-
+  const {
+    tasks,
+    selectedId,
+    setSelectedId,
+    addTask,
+    patchTask,
+    toggleDone,
+    deleteTask,
+    setTasksDirect,
+  } = useTasks();
   const [syncOk] = useState(true); // când legăm backend, îl facem real
 
   // composer state
@@ -114,22 +147,34 @@ export default function TaskBoard() {
   const [deadline, setDeadline] = useState<string>(""); // YYYY-MM-DD
   const [notes, setNotes] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   // list state
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "pending" | "done">("all");
   const [catFilter, setCatFilter] = useState<TaskCategory | "all">("all");
   const [prioFilter, setPrioFilter] = useState<TaskPriority | "all">("all");
-  const [sort, setSort] = useState<"manual" | "created" | "deadline" | "priority">("created");
+  const [sort, setSort] = useState<
+    "manual" | "created" | "deadline" | "priority"
+  >("created");
   const [groupByDue, setGroupByDue] = useState(true);
-
   const fileCsvRef = useRef<HTMLInputElement | null>(null);
 
-  // ✅ calendar refs
+  // calendar refs
   const createDeadlineRef = useRef<HTMLInputElement | null>(null);
   const editDeadlineRef = useRef<HTMLInputElement | null>(null);
+  const selected = useMemo(
+    () => tasks.find((t) => t.id === selectedId) ?? null,
+    [tasks, selectedId]
+  );
 
-  const selected = useMemo(() => tasks.find((t) => t.id === selectedId) ?? null, [tasks, selectedId]);
+  useEffect(() => {
+    if (!selected) return;
+    setEditTags(selected.tags.join(", "));
+    setEditNotes(selected.notes ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -138,58 +183,50 @@ export default function TaskBoard() {
     return { total, done, pending: total - done, overdue };
   }, [tasks]);
 
-async function submitNew() {
-  const t = title.trim();
-  if (!t) return;
+  async function submitNew() {
+    const t = title.trim();
+    if (!t) return;
 
-  const input: NewTaskInput = {
-    title: t,
-    category,
-    repeat,
-    priority,
-    deadline: dateInputToIso(deadline),
-    notes: notes.trim(),
-    tags: parseTags(tagsInput),
-  };
+    const input: NewTaskInput = {
+      title: t,
+      category,
+      repeat,
+      priority,
+      deadline: dateInputToIso(deadline),
+      notes: notes.trim(),
+      tags: parseTags(tagsInput),
+    };
 
-  try {
-    await addTask(input); // ONLINE
-  } catch {
-    // OFFLINE
-    await saveOfflineTask(input);
-    alert("Task salvat offline. Se va sincroniza când revii online.");
-  }
-
-  setTitle("");
-  setDeadline("");
-  setNotes("");
-  setTagsInput("");
-  setRepeat("none");
-  setPriority("medium");
-}
-
-useEffect(() => {
-  async function syncOfflineTasks() {
-    if (!navigator.onLine) return;
-
-    const offlineTasks = await getOfflineTasks();
-    if (offlineTasks.length === 0) return;
-
-    for (const task of offlineTasks) {
-      await addTask(task);
+    try {
+      await addTask(input); // ONLINE
+    } catch {
+      // OFFLINE
+      await saveOfflineTask(input);
+      alert("Task salvat offline. Se va sincroniza când revii online.");
     }
 
-    await clearOfflineTasks();
+    setTitle("");
+    setDeadline("");
+    setNotes("");
+    setTagsInput("");
+    setRepeat("none");
+    setPriority("medium");
   }
 
-  window.addEventListener("online", syncOfflineTasks);
-  return () => window.removeEventListener("online", syncOfflineTasks);
-
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-
-
+  useEffect(() => {
+    async function syncOfflineTasks() {
+      if (!navigator.onLine) return;
+      const offlineTasks = await getOfflineTasks();
+      if (offlineTasks.length === 0) return;
+      for (const task of offlineTasks) {
+        await addTask(task);
+      }
+      await clearOfflineTasks();
+    }
+    window.addEventListener("online", syncOfflineTasks);
+    return () => window.removeEventListener("online", syncOfflineTasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredSorted = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -207,7 +244,9 @@ useEffect(() => {
     }
 
     if (status !== "all") {
-      list = list.filter((t) => (status === "done" ? t.completed : !t.completed));
+      list = list.filter((t) =>
+        status === "done" ? t.completed : !t.completed
+      );
     }
 
     if (catFilter !== "all") {
@@ -224,9 +263,13 @@ useEffect(() => {
     } else if (sort === "created") {
       list.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     } else if (sort === "deadline") {
-      list.sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
+      list.sort((a, b) =>
+        (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999")
+      );
     } else {
-      list.sort((a, b) => priorityScore(b.priority) - priorityScore(a.priority));
+      list.sort(
+        (a, b) => priorityScore(b.priority) - priorityScore(a.priority)
+      );
     }
 
     return list;
@@ -239,14 +282,21 @@ useEffect(() => {
     if (!result.destination) return;
 
     const manual = [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const moved = reorder(manual, result.source.index, result.destination.index);
+    const moved = reorder(
+      manual,
+      result.source.index,
+      result.destination.index
+    );
     const normalized = moved.map((t, idx) => ({ ...t, order: idx }));
     setTasksDirect(normalized);
   }
 
   // ===== Export / Import =====
   function exportJSON() {
-    downloadBlob("tasks.json", new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" }));
+    downloadBlob(
+      "tasks.json",
+      new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" })
+    );
   }
 
   function exportCSV() {
@@ -265,7 +315,10 @@ useEffect(() => {
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const csv = XLSX.utils.sheet_to_csv(ws);
-    downloadBlob("tasks.csv", new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    downloadBlob(
+      "tasks.csv",
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
   }
 
   function exportExcel() {
@@ -289,7 +342,9 @@ useEffect(() => {
 
     downloadBlob(
       "tasks.xlsx",
-      new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      new Blob([out], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
     );
   }
 
@@ -304,7 +359,9 @@ useEffect(() => {
 
     let y = 28;
     filteredSorted.forEach((t, i) => {
-      const line = `${i + 1}. ${t.title} | ${t.category} | ${t.priority.toUpperCase()} | ${t.repeat} | ${
+      const line = `${i + 1}. ${t.title} | ${
+        t.category
+      } | ${t.priority.toUpperCase()} | ${t.repeat} | ${
         t.completed ? "DONE" : isOverdue(t) ? "OVERDUE" : "PENDING"
       } | ${t.deadline ? fmtDateShort(t.deadline) : "-"}`;
       doc.text(line, 14, y);
@@ -334,7 +391,10 @@ useEffect(() => {
 
   async function importFromCSV(file: File) {
     const text = await file.text();
-    const parsed = Papa.parse<CsvRow>(text, { header: true, skipEmptyLines: true });
+    const parsed = Papa.parse<CsvRow>(text, {
+      header: true,
+      skipEmptyLines: true,
+    });
 
     const imported = parsed.data
       .map((r): NewTaskInput | null => {
@@ -345,12 +405,18 @@ useEffect(() => {
         const rep = (r.repeat ?? "none").trim() as TaskRepeat;
         const pr = (r.priority ?? "medium").trim() as TaskPriority;
 
-        const safeCat: TaskCategory = CATEGORIES.includes(cat) ? cat : "Facultate";
-        const safeRep: TaskRepeat = rep === "daily" || rep === "weekly" || rep === "none" ? rep : "none";
-        const safePr: TaskPriority = pr === "low" || pr === "medium" || pr === "high" ? pr : "medium";
+        const safeCat: TaskCategory = CATEGORIES.includes(cat)
+          ? cat
+          : "Facultate";
+        const safeRep: TaskRepeat =
+          rep === "daily" || rep === "weekly" || rep === "none" ? rep : "none";
+        const safePr: TaskPriority =
+          pr === "low" || pr === "medium" || pr === "high" ? pr : "medium";
 
         const dl = (r.deadline ?? "").trim();
-        const iso = dl ? new Date(dl.includes("T") ? dl : `${dl}T00:00:00`).toISOString() : null;
+        const iso = dl
+          ? new Date(dl.includes("T") ? dl : `${dl}T00:00:00`).toISOString()
+          : null;
 
         return {
           title: rawTitle,
@@ -381,25 +447,32 @@ useEffect(() => {
       if (!t.deadline) return "Someday";
       if (isOverdue(t)) return "Overdue";
       const dt = new Date(t.deadline);
-      if (dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d) return "Today";
+      if (dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d)
+        return "Today";
       return "Upcoming";
     }
 
-    const map: Record<string, Task[]> = { Overdue: [], Today: [], Upcoming: [], Someday: [] };
+    const map: Record<string, Task[]> = {
+      Overdue: [],
+      Today: [],
+      Upcoming: [],
+      Someday: [],
+    };
     filteredSorted.forEach((t) => map[bucket(t)].push(t));
     return map as Record<"Overdue" | "Today" | "Upcoming" | "Someday", Task[]>;
   }, [filteredSorted, groupByDue]);
 
- return (
-  <div className="min-h-screen bg-[#f3f6fb] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div className="mx-auto max-w-6xl px-4 pb-16">
-      <Header syncOk={syncOk} />
-
+  return (
+    <div className="min-h-screen bg-[#f3f6fb] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <div className="mx-auto max-w-6xl px-4 pb-16">
+        <Header syncOk={syncOk} />
 
         {/* header */}
         <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">Task Studio</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">
+              Task Studio
+            </h1>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
               <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 font-semibold shadow-sm dark:bg-slate-900">
                 Total: {stats.total}
@@ -422,10 +495,15 @@ useEffect(() => {
               className="w-full bg-transparent text-sm outline-none"
               placeholder="Caută în titlu / notes / tags..."
               value={query}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setQuery(e.target.value)
+              }
             />
             {query && (
-              <button onClick={() => setQuery("")} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button
+                onClick={() => setQuery("")}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
                 <X className="h-4 w-4" />
               </button>
             )}
@@ -446,14 +524,18 @@ useEffect(() => {
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-800 dark:bg-slate-950"
                 placeholder="Titlu (max 100 caractere)"
                 value={title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTitle(e.target.value)
+                }
               />
 
               <div className="grid grid-cols-2 gap-3">
                 <select
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                   value={category}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as TaskCategory)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setCategory(e.target.value as TaskCategory)
+                  }
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -465,7 +547,9 @@ useEffect(() => {
                 <select
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                   value={priority}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPriority(e.target.value as TaskPriority)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setPriority(e.target.value as TaskPriority)
+                  }
                 >
                   {PRIORITIES.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -479,7 +563,9 @@ useEffect(() => {
                 <select
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                   value={repeat}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRepeat(e.target.value as TaskRepeat)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setRepeat(e.target.value as TaskRepeat)
+                  }
                 >
                   {REPEATS.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -488,11 +574,13 @@ useEffect(() => {
                   ))}
                 </select>
 
-                {/* ✅ Create calendar (icon + click input opens picker) */}
+                {/* Create calendar (icon + click input opens picker) */}
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => openNativeDatePicker(createDeadlineRef.current)}
+                    onClick={() =>
+                      openNativeDatePicker(createDeadlineRef.current)
+                    }
                     className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
                     title="Alege data"
                   >
@@ -505,7 +593,9 @@ useEffect(() => {
                     lang="ro"
                     className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                     value={deadline}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeadline(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setDeadline(e.target.value)
+                    }
                     onFocus={(e) => openNativeDatePicker(e.currentTarget)}
                     onClick={(e) => openNativeDatePicker(e.currentTarget)}
                   />
@@ -516,14 +606,18 @@ useEffect(() => {
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                 placeholder="Tags (ex: exam, urgent, casa) separate prin virgulă"
                 value={tagsInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagsInput(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTagsInput(e.target.value)
+                }
               />
 
               <textarea
                 className="min-h-40 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                 placeholder="Notes (opțional)"
                 value={notes}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNotes(e.target.value)
+                }
               />
 
               <button
@@ -548,7 +642,9 @@ useEffect(() => {
                 <select
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
                   value={status}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as "all" | "pending" | "done")}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setStatus(e.target.value as "all" | "pending" | "done")
+                  }
                 >
                   <option value="all">Toate</option>
                   <option value="pending">Pending</option>
@@ -558,7 +654,9 @@ useEffect(() => {
                 <select
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
                   value={catFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCatFilter(e.target.value as TaskCategory | "all")}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setCatFilter(e.target.value as TaskCategory | "all")
+                  }
                 >
                   <option value="all">Toate categoriile</option>
                   {CATEGORIES.map((c) => (
@@ -571,7 +669,9 @@ useEffect(() => {
                 <select
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
                   value={prioFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPrioFilter(e.target.value as TaskPriority | "all")}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setPrioFilter(e.target.value as TaskPriority | "all")
+                  }
                 >
                   <option value="all">Toate prioritățile</option>
                   {PRIORITIES.map((p) => (
@@ -584,7 +684,15 @@ useEffect(() => {
                 <select
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
                   value={sort}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSort(e.target.value as "manual" | "created" | "deadline" | "priority")}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setSort(
+                      e.target.value as
+                        | "manual"
+                        | "created"
+                        | "deadline"
+                        | "priority"
+                    )
+                  }
                 >
                   <option value="created">Sort: Recente</option>
                   <option value="deadline">Sort: Deadline</option>
@@ -604,7 +712,9 @@ useEffect(() => {
 
             <div className="mt-4">
               {dragEnabled ? (
-                <div className="mb-2 text-xs text-slate-500 dark:text-slate-300">Drag & drop activ (sort manual).</div>
+                <div className="mb-2 text-xs text-slate-500 dark:text-slate-300">
+                  Drag & drop activ (sort manual).
+                </div>
               ) : (
                 <div className="mb-2 text-xs text-slate-500 dark:text-slate-300">
                   Drag & drop doar pe <b>Sort: Manual</b> și când <b>Flat</b>.
@@ -613,89 +723,108 @@ useEffect(() => {
 
               {grouped ? (
                 <div className="grid gap-5">
-                  {(["Overdue", "Today", "Upcoming", "Someday"] as const).map((k) => (
-                    <div key={k}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="text-sm font-extrabold">{k}</div>
-                        <div className="text-xs text-slate-500">{grouped[k].length}</div>
-                      </div>
-
-                      <div className="grid gap-2">
-                        {grouped[k].map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => setSelectedId(t.id)}
-                            className={`w-full rounded-2xl border px-4 py-3 text-left shadow-sm transition ${
-                              selectedId === t.id
-                                ? "border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-slate-800"
-                                : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className={`truncate font-semibold ${t.completed ? "line-through text-slate-400" : ""}`}>
-                                  {t.title}
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                                    {t.category}
-                                  </span>
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                                    {t.priority.toUpperCase()}
-                                  </span>
-                                  {t.deadline && (
-                                    <span
-                                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                        isOverdue(t)
-                                          ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200"
-                                          : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                                      }`}
-                                    >
-                                      {fmtDateShort(t.deadline)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={t.completed}
-                                  onChange={() => toggleDone(t.id)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="h-5 w-5"
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteTask(t.id);
-                                  }}
-                                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                                  title="Șterge"
-                                >
-                                  <Trash2 className="h-5 w-5" />
-                                </button>
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-
-                        {grouped[k].length === 0 && (
-                          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
-                            Nimic aici.
+                  {(["Overdue", "Today", "Upcoming", "Someday"] as const).map(
+                    (k) => (
+                      <div key={k}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-sm font-extrabold">{k}</div>
+                          <div className="text-xs text-slate-500">
+                            {grouped[k].length}
                           </div>
-                        )}
+                        </div>
+
+                        <div className="grid gap-2">
+                          {grouped[k].map((t) => (
+                            <button
+                              key={t.id}
+                              onClick={() => setSelectedId(t.id)}
+                              className={`w-full rounded-2xl border px-4 py-3 text-left shadow-sm transition ${
+                                selectedId === t.id
+                                  ? "border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-slate-800"
+                                  : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div
+                                    className={`truncate font-semibold ${
+                                      t.completed
+                                        ? "line-through text-slate-400"
+                                        : ""
+                                    }`}
+                                  >
+                                    {t.title}
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                                      {t.category}
+                                    </span>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                                      {t.priority.toUpperCase()}
+                                    </span>
+                                    {t.deadline && (
+                                      <span
+                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                          isOverdue(t)
+                                            ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200"
+                                            : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                        }`}
+                                      >
+                                        {fmtDateShort(t.deadline)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={t.completed}
+                                    onChange={() => toggleDone(t.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-5 w-5"
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteTask(t.id);
+                                    }}
+                                    className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                    title="Șterge"
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+
+                          {grouped[k].length === 0 && (
+                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+                              Nimic aici.
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                   <Droppable droppableId="list">
                     {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-3">
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="grid gap-3"
+                      >
                         {filteredSorted.map((t, idx) => (
-                          <Draggable key={t.id} draggableId={t.id} index={idx} isDragDisabled={!dragEnabled}>
+                          <Draggable
+                            key={t.id}
+                            draggableId={t.id}
+                            index={idx}
+                            isDragDisabled={!dragEnabled}
+                          >
                             {(p) => (
                               <div
                                 ref={p.innerRef}
@@ -707,7 +836,10 @@ useEffect(() => {
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div {...p.dragHandleProps} className="text-slate-400">
+                                  <div
+                                    {...p.dragHandleProps}
+                                    className="text-slate-400"
+                                  >
                                     <GripVertical className="h-5 w-5" />
                                   </div>
 
@@ -718,8 +850,18 @@ useEffect(() => {
                                     onChange={() => toggleDone(t.id)}
                                   />
 
-                                  <button onClick={() => setSelectedId(t.id)} className="min-w-0 flex-1 text-left" title="Deschide detalii">
-                                    <div className={`truncate font-semibold ${t.completed ? "line-through text-slate-400" : ""}`}>
+                                  <button
+                                    onClick={() => setSelectedId(t.id)}
+                                    className="min-w-0 flex-1 text-left"
+                                    title="Deschide detalii"
+                                  >
+                                    <div
+                                      className={`truncate font-semibold ${
+                                        t.completed
+                                          ? "line-through text-slate-400"
+                                          : ""
+                                      }`}
+                                    >
                                       {t.title}
                                     </div>
 
@@ -831,7 +973,10 @@ useEffect(() => {
                 </button>
 
                 <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                  CSV recomandat: <b>title, category, repeat, priority, deadline, tags, notes</b>
+                  CSV recomandat:{" "}
+                  <b>
+                    title, category, repeat, priority, deadline, tags, notes
+                  </b>
                 </div>
               </div>
             </div>
@@ -884,7 +1029,11 @@ useEffect(() => {
                   <select
                     className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm dark:border-slate-800 dark:bg-slate-950"
                     value={selected.category}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchTask(selected.id, { category: e.target.value as TaskCategory })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      patchTask(selected.id, {
+                        category: e.target.value as TaskCategory,
+                      })
+                    }
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
@@ -896,7 +1045,11 @@ useEffect(() => {
                   <select
                     className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm dark:border-slate-800 dark:bg-slate-950"
                     value={selected.priority}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchTask(selected.id, { priority: e.target.value as TaskPriority })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      patchTask(selected.id, {
+                        priority: e.target.value as TaskPriority,
+                      })
+                    }
                   >
                     {PRIORITIES.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -909,7 +1062,11 @@ useEffect(() => {
                 <select
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm dark:border-slate-800 dark:bg-slate-950"
                   value={selected.repeat}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => patchTask(selected.id, { repeat: e.target.value as TaskRepeat })}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    patchTask(selected.id, {
+                      repeat: e.target.value as TaskRepeat,
+                    })
+                  }
                 >
                   {REPEATS.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -918,11 +1075,13 @@ useEffect(() => {
                   ))}
                 </select>
 
-                {/* ✅ Edit calendar (icon + click input opens picker) */}
+                {/* Edit calendar (icon + click input opens picker) */}
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => openNativeDatePicker(editDeadlineRef.current)}
+                    onClick={() =>
+                      openNativeDatePicker(editDeadlineRef.current)
+                    }
                     className="absolute left-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
                     title="Alege data"
                   >
@@ -936,7 +1095,9 @@ useEffect(() => {
                     className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 pl-10 text-sm dark:border-slate-800 dark:bg-slate-950"
                     value={isoToDateInput(selected.deadline)}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      patchTask(selected.id, { deadline: dateInputToIso(e.target.value) })
+                      patchTask(selected.id, {
+                        deadline: dateInputToIso(e.target.value),
+                      })
                     }
                     onFocus={(e) => openNativeDatePicker(e.currentTarget)}
                     onClick={(e) => openNativeDatePicker(e.currentTarget)}
@@ -946,19 +1107,24 @@ useEffect(() => {
                 <input
                   className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm dark:border-slate-800 dark:bg-slate-950"
                   placeholder="tags (comma separated)"
-                  value={selected.tags.join(", ")}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => patchTask(selected.id, { tags: parseTags(e.target.value) })}
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  onBlur={() =>
+                    patchTask(selected.id, { tags: parseTags(editTags) })
+                  }
                 />
 
                 <textarea
                   className="min-h-40 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
                   placeholder="Notes..."
-                  value={selected.notes}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => patchTask(selected.id, { notes: e.target.value })}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  onBlur={() => patchTask(selected.id, { notes: editNotes })}
                 />
 
                 <div className="text-xs text-slate-500 dark:text-slate-300">
-                  Creat: {fmtDateShort(selected.createdAt)} • Update: {fmtDateShort(selected.updatedAt)}
+                  Creat: {fmtDateShort(selected.createdAt)} • Update:{" "}
+                  {fmtDateShort(selected.updatedAt)}
                 </div>
               </div>
             )}

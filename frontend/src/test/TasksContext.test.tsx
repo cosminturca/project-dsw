@@ -11,20 +11,22 @@ vi.mock("../../api/tasksApi", () => {
   return {
     fetchTasks: vi.fn().mockResolvedValue([]),
 
-    createTask: vi.fn(async (input: NewTaskInput): Promise<Task> => ({
-      id: "test-id",
-      title: input.title,
-      category: input.category,
-      repeat: input.repeat,
-      priority: input.priority,
-      deadline: input.deadline ?? null,
-      notes: input.notes ?? "",
-      tags: input.tags ?? [],
-      completed: false,
-      order: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })),
+    createTask: vi.fn(
+      async (input: NewTaskInput): Promise<Task> => ({
+        id: "test-id",
+        title: input.title,
+        category: input.category,
+        repeat: input.repeat,
+        priority: input.priority,
+        deadline: input.deadline ?? null,
+        notes: input.notes ?? "",
+        tags: input.tags ?? [],
+        completed: false,
+        order: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    ),
 
     updateTask: vi.fn(),
     deleteTaskApi: vi.fn(),

@@ -13,9 +13,10 @@ export function Header({ syncOk }: { syncOk: boolean }) {
   }
 
   return (
-    <header className="w-full px-6 py-4 flex items-center justify-between
-                       bg-slate-950 border-b border-slate-800">
-
+    <header
+      className="w-full px-6 py-4 flex items-center justify-between
+                       bg-slate-950 border-b border-slate-800"
+    >
       {/* STÂNGA: user + sync */}
       <div className="flex items-center gap-4 text-sm text-slate-200">
         <span>
@@ -26,8 +27,10 @@ export function Header({ syncOk }: { syncOk: boolean }) {
         </span>
 
         {/* SYNC */}
-        <span className="inline-flex items-center gap-2 rounded-full
-                         bg-slate-900 px-3 py-1 text-xs font-semibold">
+        <span
+          className="inline-flex items-center gap-2 rounded-full
+                         bg-slate-900 px-3 py-1 text-xs font-semibold"
+        >
           <Cloud className="h-4 w-4" />
           <span
             className={`h-2 w-2 rounded-full ${
