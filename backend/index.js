@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { z } = require("zod");
-
+const Task = require("./models/Task");
 const app = express();
 
 // ===== Middleware =====
@@ -53,7 +53,7 @@ const TaskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Task = mongoose.model("Task", TaskSchema);
+
 
 // ===== Validation (Zod) =====
 const taskCreateSchema = z.object({
