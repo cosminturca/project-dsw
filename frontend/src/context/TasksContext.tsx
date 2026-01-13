@@ -59,7 +59,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     async function load() {
       if (loading) return;
 
-      // user delogat → reset state
+      // user logout → reset state
       if (!user) {
         setTasks([]);
         setSelectedId(null);

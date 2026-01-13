@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
-// validarea
 const taskSchema = z.object({
   title: z.string().min(1).max(100),
 });

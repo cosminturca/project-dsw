@@ -4,9 +4,6 @@ import { describe, it, expect, vi } from "vitest";
 import { TasksProvider, useTasks } from "../context/TasksContext";
 import type { Task, NewTaskInput } from "../types/tasks";
 
-/**
- * Mock pentru API – NU apelăm backend-ul în unit tests
- */
 vi.mock("../../api/tasksApi", () => {
   return {
     fetchTasks: vi.fn().mockResolvedValue([]),
@@ -64,7 +61,6 @@ describe("TasksContext", () => {
 
     const { result } = renderHook(() => useTasks(), { wrapper });
 
-    // addTask aruncă, deci verificăm că aruncă și că nu s-a adăugat nimic
     await expect(
       act(async () => {
         await result.current.addTask({

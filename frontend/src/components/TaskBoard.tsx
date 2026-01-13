@@ -137,7 +137,7 @@ export default function TaskBoard() {
     deleteTask,
     setTasksDirect,
   } = useTasks();
-  const [syncOk] = useState(true); // când legăm backend, îl facem real
+  const [syncOk] = useState(true);
 
   // composer state
   const [title, setTitle] = useState("");
