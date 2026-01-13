@@ -3,7 +3,7 @@
 ## Overview
 Task Studio is a modern web application developed using **React** that allows users to manage their tasks efficiently. The application supports task creation, editing, categorization, filtering, offline usage, and synchronization with a backend service.
 
-This project was developed as part of the **"Development of Web Systems"** course and follows all required specifications and constraints provided in the assignment.
+This project was developed as part of the **"Web Systems Development"** course and follows all required specifications and constraints provided in the assignment.
 
 ## Features
 
