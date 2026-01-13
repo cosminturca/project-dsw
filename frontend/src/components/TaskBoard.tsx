@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useTasks } from "../context/TasksContext";
 import type { Task, TaskCategory, TaskRepeat, TaskPriority, NewTaskInput } from "../types/tasks";
  import { Header } from "./Header";
+ import { saveOfflineTask, getOfflineTasks, clearOfflineTasks } from "../lib/indexedDb";
+
   
 import {
   ArrowUpDown,
@@ -151,20 +153,42 @@ async function submitNew() {
   };
 
   try {
-    await addTask(input); // IMPORTANT: așteptăm backend-ul
-
-    // reset DOAR după succes
-    setTitle("");
-    setDeadline("");
-    setNotes("");
-    setTagsInput("");
-    setRepeat("none");
-    setPriority("medium");
-  } catch (err) {
-    console.error("Failed to add task:", err);
-    alert("Nu s-a putut adăuga task-ul. Verifică backend-ul / API URL.");
+    await addTask(input); // ONLINE
+  } catch {
+    // OFFLINE
+    await saveOfflineTask(input);
+    alert("Task salvat offline. Se va sincroniza când revii online.");
   }
+
+  setTitle("");
+  setDeadline("");
+  setNotes("");
+  setTagsInput("");
+  setRepeat("none");
+  setPriority("medium");
 }
+
+useEffect(() => {
+  async function syncOfflineTasks() {
+    if (!navigator.onLine) return;
+
+    const offlineTasks = await getOfflineTasks();
+    if (offlineTasks.length === 0) return;
+
+    for (const task of offlineTasks) {
+      await addTask(task);
+    }
+
+    await clearOfflineTasks();
+  }
+
+  window.addEventListener("online", syncOfflineTasks);
+  return () => window.removeEventListener("online", syncOfflineTasks);
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+
 
 
   const filteredSorted = useMemo(() => {
