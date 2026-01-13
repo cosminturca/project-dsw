@@ -2,8 +2,9 @@ const mongoose = require("mongoose");
 
 const TaskSchema = new mongoose.Schema(
   {
+    // legătura cu utilizatorul autentificat
     userId: {
-      type: String,
+      type: String, // Firebase UID
       required: true,
       index: true,
     },
@@ -51,6 +52,7 @@ const TaskSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: "",
+      trim: true,
     },
 
     order: {
@@ -58,7 +60,9 @@ const TaskSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true, // createdAt, updatedAt
+  }
 );
 
 module.exports = mongoose.model("Task", TaskSchema);

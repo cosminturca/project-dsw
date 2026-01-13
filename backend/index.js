@@ -9,7 +9,7 @@ const app = express();
 // ===== Middleware =====
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-
+app.use("/api/tasks", require("./routes/tasks"));
 // ===== Mongo =====
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
