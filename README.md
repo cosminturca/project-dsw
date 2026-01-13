@@ -75,8 +75,6 @@ This project was developed as part of the **"Development of Web Systems"** cours
   - Task context logic
   - Input validation logic
 
-## Project Structure (Frontend)
-
 ## Team
 
 - **Andone Andrei**
