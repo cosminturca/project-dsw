@@ -1,6 +1,6 @@
-**List Of Tasks -- Documentație Tehnică**
+# List Of Tasks -- Documentație Tehnică
 
-**Studenți:**
+# Studenți:
 
 Andone Andrei
 Țurcă Cosmin-Constantin
