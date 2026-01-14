@@ -2,8 +2,8 @@
 
 # Studenți:
 
-Andone Andrei
-Țurcă Cosmin-Constantin
+- **Andone Andrei**
+- **Țurcă Cosmin-Constantin**
 
 # 1. Prezentare Generală
 
