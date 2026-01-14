@@ -17,7 +17,7 @@ export function Header({ syncOk }: { syncOk: boolean }) {
       className="w-full px-6 py-4 flex items-center justify-between
                        bg-slate-950 border-b border-slate-800"
     >
-      {/* STÂNGA: user + sync */}
+      {/* user + sync */}
       <div className="flex items-center gap-4 text-sm text-slate-200">
         <span>
           Conectat ca{" "}
@@ -41,7 +41,7 @@ export function Header({ syncOk }: { syncOk: boolean }) {
         </span>
       </div>
 
-      {/* DREAPTA: sign out */}
+      {/* sign out */}
       <button
         onClick={handleSignOut}
         className="rounded-lg px-4 py-2 text-sm font-semibold
